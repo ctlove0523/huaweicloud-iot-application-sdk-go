@@ -21,11 +21,31 @@ type ApplicationClient interface {
 
 	// 设备命令
 	SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse
+
+	// 设备属性
+	QueryDeviceProperties(deviceId, serviceId string) string
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) QueryDeviceProperties(deviceId, serviceId string) string {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("service_id", serviceId).
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Get("/v5/iot/{project_id}/devices/{device_id}/properties")
+
+	if err != nil {
+		fmt.Printf("query device properties failed %s", err)
+		return ""
+	}
+
+	return string(response.Body())
 }
 
 func (a *iotApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse {

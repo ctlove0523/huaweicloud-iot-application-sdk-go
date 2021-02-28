@@ -36,7 +36,9 @@ func main() {
 	//}))
 
 	// 设备下发设备命令
-	sendDeviceCommand("5fdb75cccbfe2f02ce81d4bf_chentong", client)
+	// sendDeviceCommand("5fdb75cccbfe2f02ce81d4bf_chentong", client)
+	fmt.Println(client.QueryDeviceProperties("5fdb75cccbfe2f02ce81d4bf_go-mqtt","value"))
+
 }
 
 func sendDeviceCommand(deviceId string, client iot.ApplicationClient) {
