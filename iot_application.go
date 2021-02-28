@@ -9,7 +9,8 @@ import (
 )
 
 type ApplicationClient interface {
-	ListApplications(instanceId, projectId string, defaultApp bool) *Applications
+	ListApplications() *Applications
+	ShowApplication(appId string) *Application
 }
 
 type iotApplicationClient struct {
@@ -28,6 +29,11 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 	} else {
 		c.client.SetHostURL("https://iotda.cn-north-4.myhuaweicloud.com")
 	}
+
+	c.client.SetPathParams(map[string]string{
+		"project_id": options.ProjectId,
+	})
+
 	c.client.SetRetryCount(3)
 	c.client.OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
 		if len(request.Header.Get("Content-Type")) == 0 {
@@ -45,29 +51,44 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 			request.SetHeader("X-Auth-Token", options.Credential.Token)
 		}
 
+		if len(options.InstanceId) != 0 {
+			request.SetHeader("Instance-Id", options.InstanceId)
+		}
+
 		return nil
 	})
 
 	return c
 }
 
-func (a *iotApplicationClient) ListApplications(instanceId, projectId string) *Applications {
-	req := a.client.R().
-		SetPathParams(map[string]string{
-			"project_id": projectId,
-		})
-	if len(instanceId) > 0 {
-		fmt.Println("begin to set instance id")
-		req.SetHeader("Instance-Id", instanceId)
-	}
-
-	response, err := req.Get("/v5/iot/{project_id}/apps")
+func (a *iotApplicationClient) ListApplications() *Applications {
+	response, err := a.client.R().Get("/v5/iot/{project_id}/apps")
 	if err != nil {
 		fmt.Println("get apps failed")
 		return &Applications{}
 	}
 
 	app := &Applications{}
+	err = json.Unmarshal(response.Body(), app)
+	if err != nil {
+		fmt.Println("deserialize applications failed")
+	}
+
+	return app
+}
+
+func (a *iotApplicationClient) ShowApplication(appId string) *Application {
+	response, err := a.client.R().
+		SetPathParams(map[string]string{
+			"app_id": appId,
+		}).
+		Get("/v5/iot/{project_id}/apps/{app_id}")
+	if err != nil {
+		fmt.Println("get apps failed")
+		return &Application{}
+	}
+
+	app := &Application{}
 	err = json.Unmarshal(response.Body(), app)
 	if err != nil {
 		fmt.Println("deserialize applications failed")
