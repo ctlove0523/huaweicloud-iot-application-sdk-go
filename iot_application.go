@@ -13,11 +13,85 @@ type ApplicationClient interface {
 	ShowApplication(appId string) *Application
 	DeleteApplication(appId string) bool
 	CreateApplication(request ApplicationCreateRequest) *Application
+
+	// 设备消息
+	ListDeviceMessages(deviceId string) *DeviceMessages
+	ShowDeviceMessage(deviceId, messageId string) *DeviceMessage
+	SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse {
+	reqBody, err := json.Marshal(msg)
+	if err != nil {
+		return &SendDeviceMessageResponse{}
+	}
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(reqBody).
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Post("/v5/iot/{project_id}/devices/{device_id}/messages")
+	if err != nil {
+		return &SendDeviceMessageResponse{}
+	}
+
+	resp := &SendDeviceMessageResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		return &SendDeviceMessageResponse{}
+	}
+
+	return resp
+}
+
+func (a *iotApplicationClient) ListDeviceMessages(deviceId string) *DeviceMessages {
+	response, err := a.client.R().
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Get("/v5/iot/{project_id}/devices/{device_id}/messages")
+	if err != nil {
+		fmt.Println("list device messages error")
+		return &DeviceMessages{}
+	}
+
+	messages := &DeviceMessages{}
+	err = json.Unmarshal(response.Body(), messages)
+	if err != nil {
+		fmt.Println("deserialize device message failed")
+		fmt.Println(err)
+	}
+
+	return messages
+}
+
+func (a *iotApplicationClient) ShowDeviceMessage(deviceId, messageId string) *DeviceMessage {
+	response, err := a.client.R().
+		SetPathParams(map[string]string{
+			"device_id":  deviceId,
+			"message_id": messageId,
+		}).
+		Get("/v5/iot/{project_id}/devices/{device_id}/messages/{message_id}")
+	if err != nil {
+		fmt.Println("list device messages error")
+		return &DeviceMessage{}
+	}
+
+	messages := &DeviceMessage{}
+	err = json.Unmarshal(response.Body(), messages)
+	if err != nil {
+		fmt.Println("deserialize device message failed")
+		fmt.Println(err)
+	}
+
+	return messages
 }
 
 func (a *iotApplicationClient) ListApplications() *Applications {
@@ -83,7 +157,7 @@ func (a *iotApplicationClient) CreateApplication(request ApplicationCreateReques
 	}
 
 	response, err := a.client.R().
-		SetHeader("Content-Type","application/json").
+		SetHeader("Content-Type", "application/json").
 		SetBody(body).
 		Post("/v5/iot/{project_id}/apps")
 	if err != nil {
