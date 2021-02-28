@@ -26,4 +26,9 @@ func main() {
 	fmt.Println(apps.Applications)
 
 	fmt.Println(client.ShowApplication("a04cafa7d2714e9eaff4fe9b210ccec0"))
+	//client.DeleteApplication("586523b4fb7b451691fd7ead979d4eed")
+
+	fmt.Println(client.CreateApplication(iot.ApplicationCreateRequest{
+		AppName: "gosdk",
+	}))
 }

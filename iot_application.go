@@ -11,11 +11,96 @@ import (
 type ApplicationClient interface {
 	ListApplications() *Applications
 	ShowApplication(appId string) *Application
+	DeleteApplication(appId string) bool
+	CreateApplication(request ApplicationCreateRequest) *Application
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) ListApplications() *Applications {
+	response, err := a.client.R().Get("/v5/iot/{project_id}/apps")
+	if err != nil {
+		fmt.Println("get apps failed")
+		return &Applications{}
+	}
+
+	app := &Applications{}
+	err = json.Unmarshal(response.Body(), app)
+	if err != nil {
+		fmt.Println("deserialize applications failed")
+	}
+
+	return app
+}
+
+func (a *iotApplicationClient) ShowApplication(appId string) *Application {
+	response, err := a.client.R().
+		SetPathParams(map[string]string{
+			"app_id": appId,
+		}).
+		Get("/v5/iot/{project_id}/apps/{app_id}")
+	if err != nil {
+		fmt.Println("get apps failed")
+		return &Application{}
+	}
+
+	app := &Application{}
+	err = json.Unmarshal(response.Body(), app)
+	if err != nil {
+		fmt.Println("deserialize applications failed")
+	}
+
+	return app
+}
+
+func (a *iotApplicationClient) DeleteApplication(appId string) bool {
+	response, err := a.client.R().
+		SetPathParams(map[string]string{
+			"app_id": appId,
+		}).
+		Delete("/v5/iot/{project_id}/apps/{app_id}")
+	if err != nil {
+		fmt.Printf("delete apps %s failed", appId)
+		return false
+	}
+
+	if response.StatusCode() != 204 {
+		fmt.Printf("delete app %s failed,response code is %d", appId, response.StatusCode())
+		return false
+	}
+
+	return true
+}
+
+func (a *iotApplicationClient) CreateApplication(request ApplicationCreateRequest) *Application {
+	body, err := json.Marshal(request)
+	if err != nil {
+		fmt.Println("marshal application create request failed")
+		return &Application{}
+	}
+
+	response, err := a.client.R().
+		SetHeader("Content-Type","application/json").
+		SetBody(body).
+		Post("/v5/iot/{project_id}/apps")
+	if err != nil {
+		fmt.Println("create app failed")
+		return &Application{}
+	}
+
+	fmt.Println(response.Status())
+	fmt.Println(string(response.Body()))
+
+	app := &Application{}
+	err = json.Unmarshal(response.Body(), app)
+	if err != nil {
+		fmt.Println("deserialize applications failed")
+	}
+
+	return app
 }
 
 func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClient {
@@ -59,40 +144,4 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 	})
 
 	return c
-}
-
-func (a *iotApplicationClient) ListApplications() *Applications {
-	response, err := a.client.R().Get("/v5/iot/{project_id}/apps")
-	if err != nil {
-		fmt.Println("get apps failed")
-		return &Applications{}
-	}
-
-	app := &Applications{}
-	err = json.Unmarshal(response.Body(), app)
-	if err != nil {
-		fmt.Println("deserialize applications failed")
-	}
-
-	return app
-}
-
-func (a *iotApplicationClient) ShowApplication(appId string) *Application {
-	response, err := a.client.R().
-		SetPathParams(map[string]string{
-			"app_id": appId,
-		}).
-		Get("/v5/iot/{project_id}/apps/{app_id}")
-	if err != nil {
-		fmt.Println("get apps failed")
-		return &Application{}
-	}
-
-	app := &Application{}
-	err = json.Unmarshal(response.Body(), app)
-	if err != nil {
-		fmt.Println("deserialize applications failed")
-	}
-
-	return app
 }

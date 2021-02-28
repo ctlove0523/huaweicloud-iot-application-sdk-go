@@ -10,3 +10,7 @@ type Application struct {
 type Applications struct {
 	Applications []Application `json:"applications"`
 }
+
+type ApplicationCreateRequest struct {
+	AppName string `json:"app_name"`
+}
