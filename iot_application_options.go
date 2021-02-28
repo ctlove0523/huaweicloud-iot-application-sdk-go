@@ -4,26 +4,29 @@ import (
 	"fmt"
 )
 
+type Credentials struct {
+	Ak       string
+	Sk       string
+	User     string
+	Password string
+	UseAkSk  bool
+}
+
 type ApplicationOptions struct {
-	Server     string
-	Ak         string
-	Sk         string
-	User       string
-	Password   string
-	InstanceId string
-	UseAkSk    bool
-	ProjectId  string
+	ServerAddress string
+	ServerPort    int
+	InstanceId    string
+	ProjectId     string
+	Credential    *Credentials
 }
 
 func NewApplicationOptions() *ApplicationOptions {
 	o := &ApplicationOptions{
-		Server:     "",
-		Ak:         "",
-		Sk:         "",
-		User:       "",
-		Password:   "",
-		InstanceId: "",
-		UseAkSk:    false,
+		ServerAddress: "",
+		ServerPort:    443,
+		InstanceId:    "",
+		ProjectId:     "",
+		Credential:    nil,
 	}
 	return o
 }
@@ -31,11 +34,16 @@ func NewApplicationOptions() *ApplicationOptions {
 func (o *ApplicationOptions) AddServer(server string) *ApplicationOptions {
 	if len(server) == 0 {
 		fmt.Println("server is empty")
-		o.Server = "https://iotda.cn-north-4.myhuaweicloud.com:443"
+		o.ServerAddress = "https://iotda.cn-north-4.myhuaweicloud.com:443"
 	} else {
-		o.Server = server
+		o.ServerAddress = server
 	}
 
+	return o
+}
+
+func (o *ApplicationOptions) AddServerPort(port int) *ApplicationOptions {
+	o.ServerPort = port
 	return o
 }
 
@@ -43,7 +51,7 @@ func (o *ApplicationOptions) AddAk(ak string) *ApplicationOptions {
 	if len(ak) == 0 {
 		fmt.Println("ak is empty")
 	} else {
-		o.Ak = ak
+		o.Credential.Ak = ak
 	}
 
 	return o
@@ -53,7 +61,7 @@ func (o *ApplicationOptions) AddSk(sk string) *ApplicationOptions {
 	if len(sk) == 0 {
 		fmt.Println("ak is empty")
 	} else {
-		o.Sk = sk
+		o.Credential.Sk = sk
 	}
 
 	return o
@@ -63,7 +71,7 @@ func (o *ApplicationOptions) AddUser(user string) *ApplicationOptions {
 	if len(user) == 0 {
 		fmt.Println("ak is empty")
 	} else {
-		o.User = user
+		o.Credential.User = user
 	}
 
 	return o
@@ -73,7 +81,7 @@ func (o *ApplicationOptions) AddPassword(password string) *ApplicationOptions {
 	if len(password) == 0 {
 		fmt.Println("ak is empty")
 	} else {
-		o.Password = password
+		o.Credential.Password = password
 	}
 
 	return o
@@ -90,7 +98,7 @@ func (o *ApplicationOptions) AddInstanceId(instanceId string) *ApplicationOption
 }
 
 func (o *ApplicationOptions) IsUseAkSk(useAkSk bool) *ApplicationOptions {
-	o.UseAkSk = useAkSk
+	o.Credential.UseAkSk = useAkSk
 
 	return o
 }
