@@ -18,11 +18,45 @@ type ApplicationClient interface {
 	ListDeviceMessages(deviceId string) *DeviceMessages
 	ShowDeviceMessage(deviceId, messageId string) *DeviceMessage
 	SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse
+
+	// 设备命令
+	SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse {
+	reqBody, err := json.Marshal(request)
+	if err != nil {
+		fmt.Printf("marshal device sync command request failed %s", err)
+		return &DeviceSyncCommandResponse{}
+	}
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(reqBody).
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Post("/v5/iot/{project_id}/devices/{device_id}/commands")
+	if err != nil {
+		fmt.Printf("send device command failed %s", err)
+		return &DeviceSyncCommandResponse{}
+	}
+
+	fmt.Printf(response.Status())
+
+	resp := &DeviceSyncCommandResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		fmt.Println(err)
+		return &DeviceSyncCommandResponse{}
+	}
+
+	return resp
 }
 
 func (a *iotApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse {

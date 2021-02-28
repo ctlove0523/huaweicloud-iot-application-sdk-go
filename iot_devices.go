@@ -33,3 +33,14 @@ type MessageResult struct {
 	CreatedTime  string `json:"created_time"`
 	FinishedTime string `json:"finished_time"`
 }
+
+type DeviceSyncCommandRequest struct {
+	ServiceId   string      `json:"service_id"`
+	CommandName string      `json:"command_name"`
+	Paras       interface{} `json:"paras"`
+}
+
+type DeviceSyncCommandResponse struct {
+	CommandId string      `json:"command_id"`
+	Response  interface{} `json:"response"`
+}
