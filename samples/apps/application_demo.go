@@ -15,7 +15,8 @@ func main() {
 		Credential: &iot.Credentials{
 			Ak:      "xxx",
 			Sk:      "xxx",
-			UseAkSk: true,
+			UseAkSk: false,
+			Token:   "xxx",
 		},
 	}
 

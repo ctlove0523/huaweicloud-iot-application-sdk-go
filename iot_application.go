@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +22,12 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 
 	}
 	c.options = options
-	c.client = resty.New().SetHostURL("https://iotda.cn-north-4.myhuaweicloud.com")
+	c.client = resty.New()
+	if len(options.ServerAddress) > 0 {
+		c.client.SetHostURL("https://" + options.ServerAddress + ":" + strconv.Itoa(options.ServerPort))
+	} else {
+		c.client.SetHostURL("https://iotda.cn-north-4.myhuaweicloud.com")
+	}
 	c.client.SetRetryCount(3)
 	c.client.OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
 		if len(request.Header.Get("Content-Type")) == 0 {
@@ -34,8 +40,9 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 
 		if options.Credential.UseAkSk {
 			signedMsg := SignMessage(request, options.Credential.Sk, options.Credential.Ak)
-			fmt.Println(signedMsg)
 			request.SetHeader("Authorization", " "+signedMsg)
+		} else {
+			request.SetHeader("X-Auth-Token", options.Credential.Token)
 		}
 
 		return nil

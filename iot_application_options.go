@@ -5,11 +5,10 @@ import (
 )
 
 type Credentials struct {
-	Ak       string
-	Sk       string
-	User     string
-	Password string
-	UseAkSk  bool
+	Ak      string
+	Sk      string
+	Token   string
+	UseAkSk bool
 }
 
 type ApplicationOptions struct {
@@ -67,21 +66,11 @@ func (o *ApplicationOptions) AddSk(sk string) *ApplicationOptions {
 	return o
 }
 
-func (o *ApplicationOptions) AddUser(user string) *ApplicationOptions {
-	if len(user) == 0 {
-		fmt.Println("ak is empty")
+func (o *ApplicationOptions) SetToken(token string) *ApplicationOptions {
+	if len(token) == 0 {
+		fmt.Println("Token is empty")
 	} else {
-		o.Credential.User = user
-	}
-
-	return o
-}
-
-func (o *ApplicationOptions) AddPassword(password string) *ApplicationOptions {
-	if len(password) == 0 {
-		fmt.Println("ak is empty")
-	} else {
-		o.Credential.Password = password
+		o.Credential.Token = token
 	}
 
 	return o
@@ -89,7 +78,7 @@ func (o *ApplicationOptions) AddPassword(password string) *ApplicationOptions {
 
 func (o *ApplicationOptions) AddInstanceId(instanceId string) *ApplicationOptions {
 	if len(instanceId) == 0 {
-		fmt.Println("ak is empty")
+		fmt.Println("Instance is is empty")
 	} else {
 		o.InstanceId = instanceId
 	}
@@ -99,12 +88,10 @@ func (o *ApplicationOptions) AddInstanceId(instanceId string) *ApplicationOption
 
 func (o *ApplicationOptions) IsUseAkSk(useAkSk bool) *ApplicationOptions {
 	o.Credential.UseAkSk = useAkSk
-
 	return o
 }
 
 func (o *ApplicationOptions) SetProjectId(projectId string) *ApplicationOptions {
 	o.ProjectId = projectId
-
 	return o
 }
