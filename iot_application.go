@@ -24,11 +24,29 @@ type ApplicationClient interface {
 
 	// 设备属性
 	QueryDeviceProperties(deviceId, serviceId string) string
+	UpdateDeviceProperties(deviceId string, services interface{}) bool
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) UpdateDeviceProperties(deviceId string, services interface{}) bool {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		SetBody(services).
+		Put("/v5/iot/{project_id}/devices/{device_id}/properties")
+
+	if err != nil {
+		fmt.Printf("query device properties failed %s", err)
+		return false
+	}
+
+	return response.StatusCode() == 200
 }
 
 func (a *iotApplicationClient) QueryDeviceProperties(deviceId, serviceId string) string {
