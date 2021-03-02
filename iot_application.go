@@ -9,10 +9,15 @@ import (
 )
 
 type ApplicationClient interface {
+	// 资源空间管理
 	ListApplications() *Applications
 	ShowApplication(appId string) *Application
 	DeleteApplication(appId string) bool
 	CreateApplication(request ApplicationCreateRequest) *Application
+
+	// 设备管理
+	ListDevices(queryParas map[string]string) *ListDeviceResponse
+	CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse
 
 	// 设备消息
 	ListDeviceMessages(deviceId string) *DeviceMessages
@@ -30,6 +35,53 @@ type ApplicationClient interface {
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse {
+	bytesBody, err := json.Marshal(request)
+	if err != nil {
+		fmt.Println(err)
+	}
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(bytesBody).
+		Post("/v5/iot/{project_id}/devices")
+
+	if err != nil {
+		fmt.Println("create device failed")
+		fmt.Println(err)
+	}
+
+	resp := &CreateDeviceResponse{}
+	err = json.Unmarshal(response.Body(), resp)
+	fmt.Println(string(response.Body()))
+	return resp
+}
+
+func (a *iotApplicationClient) ListDevices(queryParas map[string]string) *ListDeviceResponse {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParams(queryParas).
+		Get("/v5/iot/{project_id}/devices")
+	if err != nil {
+		fmt.Println("list devices failed")
+		return nil
+	}
+
+	if !successResponse(response) {
+		fmt.Println("response failed")
+		return nil
+	}
+
+	devices := &ListDeviceResponse{}
+
+	err = json.Unmarshal(response.Body(), devices)
+	if err != nil {
+		fmt.Println("un marshal failed")
+		return nil
+	}
+
+	return devices
 }
 
 func (a *iotApplicationClient) UpdateDeviceProperties(deviceId string, services interface{}) bool {
@@ -290,4 +342,12 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 	})
 
 	return c
+}
+
+func successResponse(response *resty.Response) bool {
+	if response.StatusCode() >= 200 && response.StatusCode() < 300 {
+		return true
+	}
+
+	return false
 }
