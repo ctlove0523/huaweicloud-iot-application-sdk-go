@@ -18,6 +18,12 @@ type ApplicationClient interface {
 	// 设备管理
 	ListDevices(queryParas map[string]string) *ListDeviceResponse
 	CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse
+	ShowDevice(deviceId string) *DeviceDetailResponse
+	UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse
+	DeleteDevice(deviceId string) bool
+	FreezeDevice(deviceId string) bool
+	UnFreezeDevice(deviceId string) bool
+	ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse
 
 	// 设备消息
 	ListDeviceMessages(deviceId string) *DeviceMessages
@@ -35,6 +41,139 @@ type ApplicationClient interface {
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse {
+	resetSecret := struct {
+		Secret          string `json:"secret,omitempty"`
+		ForceDisconnect bool   `json:"force_disconnect,omitempty"`
+	}{Secret: secret, ForceDisconnect: forceDisconnect}
+
+	body, err := json.Marshal(resetSecret)
+	if err != nil {
+		fmt.Println("marshal failed")
+		return nil
+	}
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(body).
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		SetQueryParams(map[string]string{
+			"action_id": "resetSecret",
+		}).
+		Post("/v5/iot/{project_id}/devices/{device_id}/action")
+	if err != nil {
+		fmt.Println("reset device secret failed failed")
+		return nil
+	}
+
+	resp := &ResetDeviceSecretResponse{}
+
+	fmt.Println(string(response.Body()))
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		return nil
+	}
+	return resp
+}
+
+func (a *iotApplicationClient) FreezeDevice(deviceId string) bool {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Post("/v5/iot/{project_id}/devices/{device_id}/freeze")
+	if err != nil {
+		fmt.Println("freeze device failed")
+		return false
+	}
+
+	return successResponse(response)
+}
+
+func (a *iotApplicationClient) UnFreezeDevice(deviceId string) bool {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Post("/v5/iot/{project_id}/devices/{device_id}/unfreeze")
+	if err != nil {
+		fmt.Println("unfreeze device failed")
+		return false
+	}
+
+	return successResponse(response)
+}
+
+func (a *iotApplicationClient) DeleteDevice(deviceId string) bool {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Delete("/v5/iot/{project_id}/devices/{device_id}")
+	if err != nil {
+		fmt.Println("list devices failed")
+		return false
+	}
+
+	return successResponse(response)
+}
+
+func (a *iotApplicationClient) UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse {
+	body, err := json.Marshal(request)
+	if err != nil {
+		fmt.Println("marshal failed")
+		return nil
+	}
+
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(body).
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Put("/v5/iot/{project_id}/devices/{device_id}")
+	if err != nil {
+		fmt.Println("list devices failed")
+		return nil
+	}
+
+	device := &DeviceDetailResponse{}
+	err = json.Unmarshal(response.Body(), device)
+	if err != nil {
+		fmt.Println("unmarshal response failed")
+		return nil
+	}
+
+	return device
+
+}
+
+func (a *iotApplicationClient) ShowDevice(deviceId string) *DeviceDetailResponse {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"device_id": deviceId,
+		}).
+		Get("/v5/iot/{project_id}/devices/{device_id}")
+	if err != nil {
+		fmt.Println("list devices failed")
+		return nil
+	}
+
+	deviceDetail := &DeviceDetailResponse{}
+	err = json.Unmarshal(response.Body(), deviceDetail)
+	if err != nil {
+		fmt.Println("unmarshal failed")
+		return nil
+	}
+
+	return deviceDetail
 }
 
 func (a *iotApplicationClient) CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse {

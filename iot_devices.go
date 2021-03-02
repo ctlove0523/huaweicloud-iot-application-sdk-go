@@ -125,3 +125,40 @@ type InitialDesired struct {
 	Desired   interface{} `json:"desired"`
 	ServiceID string      `json:"service_id"`
 }
+
+type DeviceDetailResponse struct {
+	AppID         string      `json:"app_id"`
+	AppName       string      `json:"app_name"`
+	DeviceID      string      `json:"device_id"`
+	NodeID        string      `json:"node_id"`
+	GatewayID     string      `json:"gateway_id"`
+	DeviceName    string      `json:"device_name"`
+	NodeType      string      `json:"node_type"`
+	Description   string      `json:"description"`
+	FwVersion     string      `json:"fw_version"`
+	SwVersion     string      `json:"sw_version"`
+	AuthInfo      AuthInfo    `json:"auth_info"`
+	ProductID     string      `json:"product_id"`
+	ProductName   string      `json:"product_name"`
+	Status        string      `json:"status"`
+	CreateTime    string      `json:"create_time"`
+	Tags          []TagV5DTO  `json:"tags"`
+	ExtensionInfo interface{} `json:"extension_info"`
+}
+
+type UpdateDeviceRequest struct {
+	DeviceName    string                `json:"device_name,omitempty"`
+	Description   string                `json:"description,omitempty"`
+	ExtensionInfo interface{}           `json:"extension_info,omitempty"`
+	AuthInfo      AuthInfoWithoutSecret `json:"auth_info,omitempty"`
+}
+
+type AuthInfoWithoutSecret struct {
+	SecureAccess bool `json:"secure_access,omitempty"`
+	Timeout      int  `json:"timeout,omitempty"`
+}
+
+type ResetDeviceSecretResponse struct {
+	DeviceId string `json:"device_id"`
+	Secret   string `json:"secret"`
+}
