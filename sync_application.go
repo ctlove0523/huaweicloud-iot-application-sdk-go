@@ -44,6 +44,9 @@ type ApplicationClient interface {
 	ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error)
 	DeleteAmqpQueue(queueId string) bool
 
+	// 接入凭证管理
+	//CreateAccessCode(accessType string) (*CreateAccessCodeResponse,error)
+	
 	// 数据流转规则管理
 
 	// 设备影子
