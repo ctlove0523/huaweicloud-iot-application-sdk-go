@@ -45,8 +45,8 @@ type ApplicationClient interface {
 	DeleteAmqpQueue(queueId string) bool
 
 	// 接入凭证管理
-	//CreateAccessCode(accessType string) (*CreateAccessCodeResponse,error)
-	
+	CreateAccessCode(accessType string) (*CreateAccessCodeResponse, error)
+
 	// 数据流转规则管理
 
 	// 设备影子
@@ -59,6 +59,40 @@ type ApplicationClient interface {
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) CreateAccessCode(accessType string) (*CreateAccessCodeResponse, error) {
+	glog.Infof("begin to create access code for type %s", accessType)
+	req := struct {
+		Type string `json:"type"`
+	}{
+		Type: "AMQP",
+	}
+
+	reqBytes, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(reqBytes).
+		Post("/v5/iot/{project_id}/auth/accesscode")
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode() != 201 {
+		return nil, convertResponseToApplicationError(response)
+	}
+
+	resp := &CreateAccessCodeResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (a *iotSyncApplicationClient) DeleteAmqpQueue(queueId string) bool {
