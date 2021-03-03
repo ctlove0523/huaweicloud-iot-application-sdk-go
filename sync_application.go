@@ -43,14 +43,22 @@ type ApplicationClient interface {
 	CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse
 	ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error)
 	DeleteAmqpQueue(queueId string) bool
+
+	// 数据流转规则管理
+
+	// 设备影子
+	// 设备组管理
+	// 标签管理
+	// 批量任务
+	// 设备CA证书管理
 }
 
-type iotApplicationClient struct {
+type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
 }
 
-func (a *iotApplicationClient) DeleteAmqpQueue(queueId string) bool {
+func (a *iotSyncApplicationClient) DeleteAmqpQueue(queueId string) bool {
 	glog.Infof("begin to delete amqp queue with id %s", queueId)
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -69,7 +77,7 @@ func (a *iotApplicationClient) DeleteAmqpQueue(queueId string) bool {
 
 }
 
-func (a *iotApplicationClient) ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error) {
+func (a *iotSyncApplicationClient) ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParam("queue_id", queueId).
@@ -93,7 +101,7 @@ func (a *iotApplicationClient) ShowAmqpQueue(queueId string) (*ShowAmqpQueueResp
 	return resp, nil
 }
 
-func (a *iotApplicationClient) CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse {
+func (a *iotSyncApplicationClient) CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse {
 	createAmqpRequest := struct {
 		QueueName string `json:"queue_name,omitempty"`
 	}{QueueName: queueName}
@@ -126,7 +134,7 @@ func (a *iotApplicationClient) CreateAmqpQueue(queueName string) *CreateAmqpQueu
 	return resp
 }
 
-func (a *iotApplicationClient) ListAmqpQueues(req ListAmqpQueuesRequest) *ListAmqpQueuesResponse {
+func (a *iotSyncApplicationClient) ListAmqpQueues(req ListAmqpQueuesRequest) *ListAmqpQueuesResponse {
 	queryParas := map[string]string{}
 	if len(req.QueueName) != 0 {
 		queryParas["queue_name"] = req.QueueName
@@ -168,7 +176,7 @@ func (a *iotApplicationClient) ListAmqpQueues(req ListAmqpQueuesRequest) *ListAm
 	return resp
 }
 
-func (a *iotApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse {
+func (a *iotSyncApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse {
 	resetSecret := struct {
 		Secret          string `json:"secret,omitempty"`
 		ForceDisconnect bool   `json:"force_disconnect,omitempty"`
@@ -204,7 +212,7 @@ func (a *iotApplicationClient) ResetDeviceSecret(deviceId, secret string, forceD
 	return resp
 }
 
-func (a *iotApplicationClient) FreezeDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) FreezeDevice(deviceId string) bool {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -219,7 +227,7 @@ func (a *iotApplicationClient) FreezeDevice(deviceId string) bool {
 	return successResponse(response)
 }
 
-func (a *iotApplicationClient) UnFreezeDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) UnFreezeDevice(deviceId string) bool {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -234,7 +242,7 @@ func (a *iotApplicationClient) UnFreezeDevice(deviceId string) bool {
 	return successResponse(response)
 }
 
-func (a *iotApplicationClient) DeleteDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) DeleteDevice(deviceId string) bool {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -249,7 +257,7 @@ func (a *iotApplicationClient) DeleteDevice(deviceId string) bool {
 	return successResponse(response)
 }
 
-func (a *iotApplicationClient) UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse {
+func (a *iotSyncApplicationClient) UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse {
 	body, err := json.Marshal(request)
 	if err != nil {
 		fmt.Println("marshal failed")
@@ -279,7 +287,7 @@ func (a *iotApplicationClient) UpdateDevice(deviceId string, request UpdateDevic
 
 }
 
-func (a *iotApplicationClient) ShowDevice(deviceId string) *DeviceDetailResponse {
+func (a *iotSyncApplicationClient) ShowDevice(deviceId string) *DeviceDetailResponse {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -301,7 +309,7 @@ func (a *iotApplicationClient) ShowDevice(deviceId string) *DeviceDetailResponse
 	return deviceDetail
 }
 
-func (a *iotApplicationClient) CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse {
+func (a *iotSyncApplicationClient) CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse {
 	bytesBody, err := json.Marshal(request)
 	if err != nil {
 		fmt.Println(err)
@@ -322,7 +330,7 @@ func (a *iotApplicationClient) CreateDevice(request CreateDeviceRequest) *Create
 	return resp
 }
 
-func (a *iotApplicationClient) ListDevices(queryParas map[string]string) *ListDeviceResponse {
+func (a *iotSyncApplicationClient) ListDevices(queryParas map[string]string) *ListDeviceResponse {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(queryParas).
@@ -348,7 +356,7 @@ func (a *iotApplicationClient) ListDevices(queryParas map[string]string) *ListDe
 	return devices
 }
 
-func (a *iotApplicationClient) UpdateDeviceProperties(deviceId string, services interface{}) bool {
+func (a *iotSyncApplicationClient) UpdateDeviceProperties(deviceId string, services interface{}) bool {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -365,7 +373,7 @@ func (a *iotApplicationClient) UpdateDeviceProperties(deviceId string, services 
 	return response.StatusCode() == 200
 }
 
-func (a *iotApplicationClient) QueryDeviceProperties(deviceId, serviceId string) string {
+func (a *iotSyncApplicationClient) QueryDeviceProperties(deviceId, serviceId string) string {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParam("service_id", serviceId).
@@ -382,7 +390,7 @@ func (a *iotApplicationClient) QueryDeviceProperties(deviceId, serviceId string)
 	return string(response.Body())
 }
 
-func (a *iotApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse {
+func (a *iotSyncApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse {
 	reqBody, err := json.Marshal(request)
 	if err != nil {
 		fmt.Printf("marshal device sync command request failed %s", err)
@@ -413,7 +421,7 @@ func (a *iotApplicationClient) SendDeviceSyncCommand(deviceId string, request De
 	return resp
 }
 
-func (a *iotApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse {
+func (a *iotSyncApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse {
 	reqBody, err := json.Marshal(msg)
 	if err != nil {
 		return &SendDeviceMessageResponse{}
@@ -439,7 +447,7 @@ func (a *iotApplicationClient) SendDeviceMessage(deviceId string, msg SendDevice
 	return resp
 }
 
-func (a *iotApplicationClient) ListDeviceMessages(deviceId string) *DeviceMessages {
+func (a *iotSyncApplicationClient) ListDeviceMessages(deviceId string) *DeviceMessages {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"device_id": deviceId,
@@ -460,7 +468,7 @@ func (a *iotApplicationClient) ListDeviceMessages(deviceId string) *DeviceMessag
 	return messages
 }
 
-func (a *iotApplicationClient) ShowDeviceMessage(deviceId, messageId string) *DeviceMessage {
+func (a *iotSyncApplicationClient) ShowDeviceMessage(deviceId, messageId string) *DeviceMessage {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"device_id":  deviceId,
@@ -482,7 +490,7 @@ func (a *iotApplicationClient) ShowDeviceMessage(deviceId, messageId string) *De
 	return messages
 }
 
-func (a *iotApplicationClient) ListApplications() *Applications {
+func (a *iotSyncApplicationClient) ListApplications() *Applications {
 	response, err := a.client.R().Get("/v5/iot/{project_id}/apps")
 	if err != nil {
 		fmt.Println("get apps failed")
@@ -498,7 +506,7 @@ func (a *iotApplicationClient) ListApplications() *Applications {
 	return app
 }
 
-func (a *iotApplicationClient) ShowApplication(appId string) *Application {
+func (a *iotSyncApplicationClient) ShowApplication(appId string) *Application {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"app_id": appId,
@@ -518,7 +526,7 @@ func (a *iotApplicationClient) ShowApplication(appId string) *Application {
 	return app
 }
 
-func (a *iotApplicationClient) DeleteApplication(appId string) bool {
+func (a *iotSyncApplicationClient) DeleteApplication(appId string) bool {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"app_id": appId,
@@ -537,7 +545,7 @@ func (a *iotApplicationClient) DeleteApplication(appId string) bool {
 	return true
 }
 
-func (a *iotApplicationClient) CreateApplication(request ApplicationCreateRequest) *Application {
+func (a *iotSyncApplicationClient) CreateApplication(request ApplicationCreateRequest) *Application {
 	body, err := json.Marshal(request)
 	if err != nil {
 		fmt.Println("marshal application create request failed")
@@ -565,8 +573,8 @@ func (a *iotApplicationClient) CreateApplication(request ApplicationCreateReques
 	return app
 }
 
-func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClient {
-	c := &iotApplicationClient{
+func CreateSyncIotApplicationClient(options ApplicationOptions) *iotSyncApplicationClient {
+	c := &iotSyncApplicationClient{
 
 	}
 	c.options = options

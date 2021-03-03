@@ -20,7 +20,7 @@ func main() {
 		},
 	}
 
-	client := iot.CreateIotApplicationClient(options)
+	client := iot.CreateSyncIotApplicationClient(options)
 
 	apps := client.ListApplications()
 	fmt.Println(apps.Applications)

@@ -21,7 +21,7 @@ func main() {
 		},
 	}
 
-	client := iot.CreateIotApplicationClient(options)
+	client := iot.CreateSyncIotApplicationClient(options)
 
 	fmt.Println(client.ResetDeviceSecret("5fdb75cccbfe2f02ce81d4bf_1234567", "987654321", true))
 
