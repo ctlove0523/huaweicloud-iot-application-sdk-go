@@ -36,11 +36,139 @@ type ApplicationClient interface {
 	// 设备属性
 	QueryDeviceProperties(deviceId, serviceId string) string
 	UpdateDeviceProperties(deviceId string, services interface{}) bool
+
+	// AMQP队列管理
+	ListAmqpQueues(req ListAmqpQueuesRequest) *ListAmqpQueuesResponse
+	CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse
+	ShowAmqpQueue(queueId string) *ShowAmqpQueueResponse
+	DeleteAmqpQueue(queueId string) bool
 }
 
 type iotApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotApplicationClient) DeleteAmqpQueue(queueId string) bool {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParam("queue_id", queueId).
+		Delete("v5/iot/{project_id}/amqp-queues/{queue_id}")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	if response.StatusCode() != 204 {
+		fmt.Println(response.StatusCode())
+		fmt.Println(string(response.Body()))
+		return false
+	}
+
+	return true
+
+}
+
+func (a *iotApplicationClient) ShowAmqpQueue(queueId string) *ShowAmqpQueueResponse {
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetPathParam("queue_id", queueId).
+		Get("v5/iot/{project_id}/amqp-queues/{queue_id}")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	if response.StatusCode() != 200 {
+		fmt.Println(response.StatusCode())
+		fmt.Println(string(response.Body()))
+		return nil
+	}
+
+	resp := &ShowAmqpQueueResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	return resp
+}
+
+func (a *iotApplicationClient) CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse {
+	createAmqpRequest := struct {
+		QueueName string `json:"queue_name,omitempty"`
+	}{QueueName: queueName}
+
+	requestBytes, err := json.Marshal(createAmqpRequest)
+	if err != nil {
+		return nil
+	}
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(requestBytes).
+		Post("/v5/iot/{project_id}/amqp-queues")
+	if err != nil {
+		return nil
+	}
+
+	if response.StatusCode() != 201 {
+		fmt.Println(response.StatusCode())
+		fmt.Println(string(response.Body()))
+		return nil
+	}
+
+	resp := &CreateAmqpQueueResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		return nil
+	}
+
+	return resp
+}
+
+func (a *iotApplicationClient) ListAmqpQueues(req ListAmqpQueuesRequest) *ListAmqpQueuesResponse {
+	queryParas := map[string]string{}
+	if len(req.QueueName) != 0 {
+		queryParas["queue_name"] = req.QueueName
+	}
+	if req.Limit == 0 {
+		queryParas["limit"] = "10"
+	} else {
+		queryParas["limit"] = strconv.Itoa(req.Limit)
+	}
+	if len(req.Marker) != 0 {
+		queryParas["marker"] = req.Marker
+	}
+	if len(req.Offset) != 0 {
+		queryParas["offset"] = req.Offset
+	}
+
+	response, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetQueryParams(queryParas).
+		Get("/v5/iot/{project_id}/amqp-queues")
+
+	if err != nil {
+		return nil
+	}
+
+	if response.StatusCode() != 200 {
+		fmt.Println(response.StatusCode())
+		fmt.Println(string(response.Body()))
+		return nil
+	}
+
+	resp := &ListAmqpQueuesResponse{}
+
+	err = json.Unmarshal(response.Body(), resp)
+	if err != nil {
+		return nil
+	}
+
+	return resp
 }
 
 func (a *iotApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse {
