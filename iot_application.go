@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang/glog"
 	"strconv"
 	"time"
 )
@@ -40,7 +41,7 @@ type ApplicationClient interface {
 	// AMQP队列管理
 	ListAmqpQueues(req ListAmqpQueuesRequest) *ListAmqpQueuesResponse
 	CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse
-	ShowAmqpQueue(queueId string) *ShowAmqpQueueResponse
+	ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error)
 	DeleteAmqpQueue(queueId string) bool
 }
 
@@ -50,18 +51,17 @@ type iotApplicationClient struct {
 }
 
 func (a *iotApplicationClient) DeleteAmqpQueue(queueId string) bool {
+	glog.Infof("begin to delete amqp queue with id %s", queueId)
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParam("queue_id", queueId).
 		Delete("v5/iot/{project_id}/amqp-queues/{queue_id}")
 	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 
 	if response.StatusCode() != 204 {
-		fmt.Println(response.StatusCode())
-		fmt.Println(string(response.Body()))
+		glog.Warningf("delete amqp queue response code is %d", response.StatusCode())
 		return false
 	}
 
@@ -69,31 +69,28 @@ func (a *iotApplicationClient) DeleteAmqpQueue(queueId string) bool {
 
 }
 
-func (a *iotApplicationClient) ShowAmqpQueue(queueId string) *ShowAmqpQueueResponse {
+func (a *iotApplicationClient) ShowAmqpQueue(queueId string) (*ShowAmqpQueueResponse, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParam("queue_id", queueId).
 		Get("v5/iot/{project_id}/amqp-queues/{queue_id}")
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
 	if response.StatusCode() != 200 {
-		fmt.Println(response.StatusCode())
-		fmt.Println(string(response.Body()))
-		return nil
+		err = convertResponseToApplicationError(response)
+		return nil, err
 	}
 
 	resp := &ShowAmqpQueueResponse{}
 
 	err = json.Unmarshal(response.Body(), resp)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 
-	return resp
+	return resp, nil
 }
 
 func (a *iotApplicationClient) CreateAmqpQueue(queueName string) *CreateAmqpQueueResponse {
@@ -608,7 +605,19 @@ func CreateIotApplicationClient(options ApplicationOptions) *iotApplicationClien
 		return nil
 	})
 
+	go logFlush()
+
 	return c
+}
+
+func logFlush() {
+	ticker := time.Tick(5 * time.Second)
+	for {
+		select {
+		case <-ticker:
+			glog.Flush()
+		}
+	}
 }
 
 func successResponse(response *resty.Response) bool {

@@ -5,7 +5,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func convertResponseToApplicationError(response resty.Response) error {
+func convertResponseToApplicationError(response *resty.Response) error {
 	are := &ApplicationResponseError{}
 
 	err := json.Unmarshal(response.Body(), are)
@@ -14,7 +14,6 @@ func convertResponseToApplicationError(response resty.Response) error {
 	}
 
 	ae := &ApplicationError{
-		Status:    response.StatusCode(),
 		ErrorMsg:  are.ErrorMsg,
 		ErrorCode: are.ErrorCode,
 	}

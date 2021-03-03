@@ -3,7 +3,6 @@ package iot
 import "encoding/json"
 
 type ApplicationError struct {
-	Status    int    `json:"status"`
 	ErrorCode string `json:"error_code"`
 	ErrorMsg  string `json:"error_msg"`
 }

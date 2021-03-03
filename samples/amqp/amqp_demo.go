@@ -28,8 +28,7 @@ func main() {
 	if createQueueResponse != nil {
 		fmt.Println("create amqp queue success")
 		fmt.Println(client.ShowAmqpQueue(createQueueResponse.QueueID))
-		fmt.Println(client.DeleteAmqpQueue(createQueueResponse.QueueID))
+		//fmt.Println(client.DeleteAmqpQueue(createQueueResponse.QueueID))
 	}
-
 
 }
