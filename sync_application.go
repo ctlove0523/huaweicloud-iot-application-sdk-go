@@ -51,7 +51,13 @@ type ApplicationClient interface {
 
 	// 设备影子
 	ShowDeviceShadow(deviceId string) (*ShowDeviceShadowResponse, error)
+	UpdateDeviceShadow(deviceId string, request UpdateDeviceShadowRequest) (*ShowDeviceShadowResponse, error)
 	// 设备组管理
+
+	CreateDeviceGroup(request CreateDeviceGroupRequest) (*CreateDeviceGroupResponse, error)
+	ShowDeviceGroup(deviceGroupId string) (*ShowDeviceGroupResponse, error)
+	UpdateDeviceGroup(deviceGroupId string, request UpdateDeviceGroupRequest) (*UpdateDeviceGroupResponse, error)
+	DeleteDeviceGroup(deviceGroupId string) (bool, error)
 	// 标签管理
 	// 批量任务
 	// 设备CA证书管理
@@ -62,6 +68,126 @@ type iotSyncApplicationClient struct {
 	options ApplicationOptions
 }
 
+func (a *iotSyncApplicationClient) DeleteDeviceGroup(deviceGroupId string) (bool, error) {
+	httpResponse, err := a.client.R().
+		SetPathParam("group_id", deviceGroupId).
+		Delete("/v5/iot/{project_id}/device-group/{group_id}")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
+}
+
+func (a *iotSyncApplicationClient) UpdateDeviceGroup(deviceGroupId string, request UpdateDeviceGroupRequest) (*UpdateDeviceGroupResponse, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetPathParam("group_id", deviceGroupId).
+		SetBody(binaryRequest).
+		Get("/v5/iot/{project_id}/device-group/{group_id}")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &UpdateDeviceGroupResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (a *iotSyncApplicationClient) ShowDeviceGroup(deviceGroupId string) (*ShowDeviceGroupResponse, error) {
+	httpResponse, err := a.client.R().
+		SetPathParam("group_id", deviceGroupId).
+		Get("/v5/iot/{project_id}/device-group/{group_id}")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ShowDeviceGroupResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (a *iotSyncApplicationClient) CreateDeviceGroup(request CreateDeviceGroupRequest) (*CreateDeviceGroupResponse, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetHeader("Content-Type","application/json").
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/device-group")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 201 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &CreateDeviceGroupResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (a *iotSyncApplicationClient) UpdateDeviceShadow(deviceId string, request UpdateDeviceShadowRequest) (*ShowDeviceShadowResponse, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetPathParam("device_id", deviceId).
+		SetBody(binaryRequest).
+		Put("/v5/iot/{project_id}/devices/{device_id}/shadow")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ShowDeviceShadowResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
 func (a *iotSyncApplicationClient) ShowDeviceShadow(deviceId string) (*ShowDeviceShadowResponse, error) {
 	response, err := a.client.R().
 		SetPathParam("device_id", deviceId).
