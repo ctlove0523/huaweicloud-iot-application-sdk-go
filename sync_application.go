@@ -50,6 +50,7 @@ type ApplicationClient interface {
 	// 数据流转规则管理
 
 	// 设备影子
+	ShowDeviceShadow(deviceId string) (*ShowDeviceShadowResponse, error)
 	// 设备组管理
 	// 标签管理
 	// 批量任务
@@ -59,6 +60,28 @@ type ApplicationClient interface {
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) ShowDeviceShadow(deviceId string) (*ShowDeviceShadowResponse, error) {
+	response, err := a.client.R().
+		SetPathParam("device_id", deviceId).
+		Get("/v5/iot/{project_id}/devices/{device_id}/shadow")
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(response)
+	}
+
+	result := &ShowDeviceShadowResponse{}
+
+	err = json.Unmarshal(response.Body(), result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (a *iotSyncApplicationClient) CreateAccessCode(accessType string) (*CreateAccessCodeResponse, error) {
