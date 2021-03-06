@@ -59,6 +59,9 @@ type ApplicationClient interface {
 	ShowDeviceGroup(deviceGroupId string) (*ShowDeviceGroupResponse, error)
 	UpdateDeviceGroup(deviceGroupId string, request UpdateDeviceGroupRequest) (*UpdateDeviceGroupResponse, error)
 	DeleteDeviceGroup(deviceGroupId string) (bool, error)
+
+	AddDeviceToDeviceGroup(deviceGroupId, deviceId string) (bool, error)
+	RemoveDeviceFromDeviceGroup(deviceGroupId, deviceId string) (bool, error)
 	// 标签管理
 	// 批量任务
 	// 设备CA证书管理
@@ -69,6 +72,31 @@ type iotSyncApplicationClient struct {
 	options ApplicationOptions
 }
 
+func (a *iotSyncApplicationClient) AddDeviceToDeviceGroup(deviceGroupId, deviceId string) (bool, error) {
+	return a.manageDeviceGroupDevices(deviceGroupId, "addDevice", deviceId)
+
+}
+
+func (a *iotSyncApplicationClient) RemoveDeviceFromDeviceGroup(deviceGroupId, deviceId string) (bool, error) {
+	return a.manageDeviceGroupDevices(deviceGroupId, "removeDevice", deviceId)
+}
+
+func (a *iotSyncApplicationClient) manageDeviceGroupDevices(deviceGroupId, actionId, deviceId string) (bool, error) {
+	httpResponse, err := a.client.R().
+		SetPathParam("group_id", deviceGroupId).
+		SetQueryParam("action_id", actionId).
+		SetQueryParam("device_id", deviceId).
+		Post("/v5/iot/{project_id}/device-group/{group_id}/action")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
+}
 func (a *iotSyncApplicationClient) ListDeviceGroups(request ListDeviceGroupRequest) (*ListDeviceGroupResponse, error) {
 	rawRequest := a.client.R().
 		SetHeader("Content-Type", "application/json")
