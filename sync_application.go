@@ -52,8 +52,9 @@ type ApplicationClient interface {
 	// 设备影子
 	ShowDeviceShadow(deviceId string) (*ShowDeviceShadowResponse, error)
 	UpdateDeviceShadow(deviceId string, request UpdateDeviceShadowRequest) (*ShowDeviceShadowResponse, error)
-	// 设备组管理
 
+	// 设备组管理
+	ListDeviceGroups(request ListDeviceGroupRequest) (*ListDeviceGroupResponse, error)
 	CreateDeviceGroup(request CreateDeviceGroupRequest) (*CreateDeviceGroupResponse, error)
 	ShowDeviceGroup(deviceGroupId string) (*ShowDeviceGroupResponse, error)
 	UpdateDeviceGroup(deviceGroupId string, request UpdateDeviceGroupRequest) (*UpdateDeviceGroupResponse, error)
@@ -66,6 +67,53 @@ type ApplicationClient interface {
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) ListDeviceGroups(request ListDeviceGroupRequest) (*ListDeviceGroupResponse, error) {
+	rawRequest := a.client.R().
+		SetHeader("Content-Type", "application/json")
+	if request.Limit >= 1 && request.Limit <= 50 {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(request.Limit))
+	} else {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(10))
+	}
+
+	if len(request.Marker) != 0 {
+		rawRequest.SetQueryParam("marker", request.Marker)
+	}
+
+	if request.Offset >= 0 && request.Offset <= 500 {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(request.Offset))
+	} else {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(0))
+	}
+
+	if len(request.LastModifiedTime) != 0 {
+		rawRequest.SetQueryParam("last_modified_time", request.LastModifiedTime)
+	}
+
+	if len(request.AppId) != 0 {
+		rawRequest.SetQueryParam("app_id", request.AppId)
+	}
+
+	httpResponse, err := rawRequest.
+		Get("/v5/iot/{project_id}/device-group")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ListDeviceGroupResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (a *iotSyncApplicationClient) DeleteDeviceGroup(deviceGroupId string) (bool, error) {
@@ -140,7 +188,7 @@ func (a *iotSyncApplicationClient) CreateDeviceGroup(request CreateDeviceGroupRe
 	}
 
 	httpResponse, err := a.client.R().
-		SetHeader("Content-Type","application/json").
+		SetHeader("Content-Type", "application/json").
 		SetBody(binaryRequest).
 		Post("/v5/iot/{project_id}/device-group")
 	if err != nil {

@@ -22,6 +22,15 @@ func main() {
 
 	client := iot.CreateSyncIotApplicationClient(options)
 
+	resp, err := client.ListDeviceGroups(iot.ListDeviceGroupRequest{})
+	if err != nil {
+		fmt.Println(err)
+		panic(0)
+	}
+
+	fmt.Println(resp.DeviceGroups)
+
+
 	response, err := client.CreateDeviceGroup(iot.CreateDeviceGroupRequest{
 		Name:  "first",
 		AppID: "a04cafa7d2714e9eaff4fe9b210ccec0",

@@ -22,8 +22,8 @@ type ShowDeviceGroupResponse struct {
 }
 
 type UpdateDeviceGroupRequest struct {
-	Name         string `json:"name"`
-	Description  string `json:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type UpdateDeviceGroupResponse struct {
@@ -33,3 +33,22 @@ type UpdateDeviceGroupResponse struct {
 	SuperGroupID string `json:"super_group_id"`
 }
 
+type ListDeviceGroupRequest struct {
+	Limit            int    `json:"limit,omitempty"`
+	Marker           string `json:"marker,omitempty"`
+	Offset           int    `json:"offset,omitempty"`
+	LastModifiedTime string `json:"last_modified_time,omitempty"`
+	AppId            string `json:"app_id,omitempty"`
+}
+
+type ListDeviceGroupResponse struct {
+	DeviceGroups []DeviceGroupResponseDTO `json:"device_groups"`
+	Page         Page
+}
+
+type DeviceGroupResponseDTO struct {
+	GroupId      string `json:"group_id"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	SuperGroupId string `json:"super_group_id"`
+}
