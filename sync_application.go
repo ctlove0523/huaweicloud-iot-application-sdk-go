@@ -10,12 +10,6 @@ import (
 )
 
 type ApplicationClient interface {
-	// 资源空间管理
-	ListApplications() *Applications
-	ShowApplication(appId string) *Application
-	DeleteApplication(appId string) bool
-	CreateApplication(request ApplicationCreateRequest) *Application
-
 	// 设备管理
 	ListDevices(queryParas map[string]string) *ListDeviceResponse
 	CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse
@@ -67,7 +61,15 @@ type ApplicationClient interface {
 	DeviceBindTags(request DeviceBindTagsRequest) (bool, error)
 	DeviceUnBindTags(request DeviceUnBindTagsRequest) (bool, error)
 	ListDeviceByTags(request ListDeviceByTagsRequest) (*ListDeviceByTagsResponse, error)
+
+	// 资源空间管理
+	ListApplications() *Applications
+	ShowApplication(appId string) *Application
+	DeleteApplication(appId string) bool
+	CreateApplication(request ApplicationCreateRequest) *Application
+
 	// 批量任务
+	
 	// 设备CA证书管理
 }
 
