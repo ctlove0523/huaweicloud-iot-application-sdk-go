@@ -64,6 +64,9 @@ type ApplicationClient interface {
 	RemoveDeviceFromDeviceGroup(deviceGroupId, deviceId string) (bool, error)
 	ListDeviceInDeviceGroup(deviceGroupId string, request ListDeviceInDeviceGroupRequest) (*ListDeviceInDeviceGroupRequest, error)
 	// 标签管理
+	DeviceBindTags(request DeviceBindTagsRequest) (bool, error)
+	DeviceUnBindTags(request DeviceUnBindTagsRequest) (bool, error)
+	ListDeviceByTags(request ListDeviceByTagsRequest) (*ListDeviceByTagsResponse, error)
 	// 批量任务
 	// 设备CA证书管理
 }
@@ -71,6 +74,101 @@ type ApplicationClient interface {
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) ListDeviceByTags(request ListDeviceByTagsRequest) (*ListDeviceByTagsResponse, error) {
+	rawRequest := a.client.R().
+		SetHeader("Content-Type", "application/json")
+	if request.Limit >= 1 && request.Limit <= 50 {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(request.Limit))
+	} else {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(10))
+	}
+
+	if len(request.Marker) != 0 {
+		rawRequest.SetQueryParam("marker", request.Marker)
+	}
+
+	if request.Offset >= 0 && request.Offset <= 500 {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(request.Offset))
+	} else {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(0))
+	}
+
+	requestBody := struct {
+		ResourceType string     `json:"resource_type,omitempty"`
+		Tags         []TagV5DTO `json:"tags,omitempty"`
+	}{
+		ResourceType: "device",
+		Tags:         request.Tags,
+	}
+
+	binaryRequest, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResponse, err := rawRequest.
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/tags/query-resources")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ListDeviceByTagsResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (a *iotSyncApplicationClient) DeviceUnBindTags(request DeviceUnBindTagsRequest) (bool, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return false, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/tags/unbind-resource")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
+}
+
+func (a *iotSyncApplicationClient) DeviceBindTags(request DeviceBindTagsRequest) (bool, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return false, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/tags/bind-resource")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
 }
 
 func (a *iotSyncApplicationClient) ListDeviceInDeviceGroup(deviceGroupId string, request ListDeviceInDeviceGroupRequest) (*ListDeviceInDeviceGroupRequest, error) {
