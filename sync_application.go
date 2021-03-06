@@ -62,6 +62,7 @@ type ApplicationClient interface {
 
 	AddDeviceToDeviceGroup(deviceGroupId, deviceId string) (bool, error)
 	RemoveDeviceFromDeviceGroup(deviceGroupId, deviceId string) (bool, error)
+	ListDeviceInDeviceGroup(deviceGroupId string, request ListDeviceInDeviceGroupRequest) (*ListDeviceInDeviceGroupRequest, error)
 	// 标签管理
 	// 批量任务
 	// 设备CA证书管理
@@ -70,6 +71,46 @@ type ApplicationClient interface {
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) ListDeviceInDeviceGroup(deviceGroupId string, request ListDeviceInDeviceGroupRequest) (*ListDeviceInDeviceGroupRequest, error) {
+	rawRequest := a.client.R().
+		SetHeader("Content-Type", "application/json")
+	if request.Limit >= 1 && request.Limit <= 50 {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(request.Limit))
+	} else {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(10))
+	}
+
+	if len(request.Marker) != 0 {
+		rawRequest.SetQueryParam("marker", request.Marker)
+	}
+
+	if request.Offset >= 0 && request.Offset <= 500 {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(request.Offset))
+	} else {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(0))
+	}
+
+	httpResponse, err := rawRequest.
+		SetPathParam("group_id", deviceGroupId).
+		Get("/v5/iot/{project_id}/device-group/{group_id}/devices")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ListDeviceInDeviceGroupRequest{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (a *iotSyncApplicationClient) AddDeviceToDeviceGroup(deviceGroupId, deviceId string) (bool, error) {
