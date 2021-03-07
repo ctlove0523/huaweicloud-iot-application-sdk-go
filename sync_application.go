@@ -69,13 +69,129 @@ type ApplicationClient interface {
 	CreateApplication(request ApplicationCreateRequest) *Application
 
 	// 批量任务
-	
+
 	// 设备CA证书管理
+	ListDeviceCertificates(request ListDeviceCertificatesRequest) (*ListDeviceCertificatesResponse, error)
+	UploadDeviceCertificates(request UploadDeviceCertificatesRequest) (*UploadDeviceCertificatesResponse, error)
+	DeleteDeviceCertificates(certificateId string) (bool, error)
+	VerifyDeviceCertificates(certificateId, verifyContent string) (bool, error)
 }
 
 type iotSyncApplicationClient struct {
 	client  *resty.Client
 	options ApplicationOptions
+}
+
+func (a *iotSyncApplicationClient) VerifyDeviceCertificates(certificateId, verifyContent string) (bool, error) {
+	reqestBody := struct {
+		VerifyContent string `json:"verify_content"`
+	}{
+		VerifyContent: verifyContent,
+	}
+
+	binaryRequest, err := json.Marshal(reqestBody)
+	if err != nil {
+		return false, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetPathParam("certificate_id", certificateId).
+		SetQueryParam("action_id", "verify").
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/certificates/{certificate_id}/action")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
+}
+
+func (a *iotSyncApplicationClient) DeleteDeviceCertificates(certificateId string) (bool, error) {
+	httpResponse, err := a.client.R().
+		SetPathParam("certificate_id", certificateId).
+		Delete("/v5/iot/{project_id}/certificates/{certificate_id}")
+	if err != nil {
+		return false, err
+	}
+
+	if httpResponse.StatusCode() != 204 {
+		return false, convertResponseToApplicationError(httpResponse)
+	}
+
+	return true, nil
+}
+
+func (a *iotSyncApplicationClient) UploadDeviceCertificates(request UploadDeviceCertificatesRequest) (*UploadDeviceCertificatesResponse, error) {
+	binaryRequest, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	httpResponse, err := a.client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(binaryRequest).
+		Post("/v5/iot/{project_id}/certificates")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &UploadDeviceCertificatesResponse{}
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (a *iotSyncApplicationClient) ListDeviceCertificates(request ListDeviceCertificatesRequest) (*ListDeviceCertificatesResponse, error) {
+	rawRequest := a.client.R().
+		SetHeader("Content-Type", "application/json")
+	if request.Limit >= 1 && request.Limit <= 50 {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(request.Limit))
+	} else {
+		rawRequest.SetQueryParam("limit", strconv.Itoa(10))
+	}
+
+	if len(request.Marker) != 0 {
+		rawRequest.SetQueryParam("marker", request.Marker)
+	}
+
+	if request.Offset >= 0 && request.Offset <= 500 {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(request.Offset))
+	} else {
+		rawRequest.SetQueryParam("offset", strconv.Itoa(0))
+	}
+
+	if len(request.AppId) != 0 {
+		rawRequest.SetQueryParam("app_id", request.AppId)
+	}
+
+	httpResponse, err := rawRequest.
+		Get("/v5/iot/{project_id}/certificates")
+	if err != nil {
+		return nil, err
+	}
+
+	if httpResponse.StatusCode() != 200 {
+		return nil, convertResponseToApplicationError(httpResponse)
+	}
+
+	response := &ListDeviceCertificatesResponse{}
+
+	err = json.Unmarshal(httpResponse.Body(), response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (a *iotSyncApplicationClient) ListDeviceByTags(request ListDeviceByTagsRequest) (*ListDeviceByTagsResponse, error) {
