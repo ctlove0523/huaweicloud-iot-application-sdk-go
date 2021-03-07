@@ -11,22 +11,22 @@ import (
 
 type ApplicationClient interface {
 	// 设备管理
-	ListDevices(queryParas map[string]string) *ListDeviceResponse
-	CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse
-	ShowDevice(deviceId string) *DeviceDetailResponse
-	UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse
-	DeleteDevice(deviceId string) bool
-	FreezeDevice(deviceId string) bool
-	UnFreezeDevice(deviceId string) bool
-	ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse
+	ListDevices(queryParas map[string]string) (*ListDeviceResponse, error)
+	CreateDevice(request CreateDeviceRequest) (*CreateDeviceResponse, error)
+	ShowDevice(deviceId string) (*DeviceDetailResponse, error)
+	UpdateDevice(deviceId string, request UpdateDeviceRequest) (*DeviceDetailResponse, error)
+	DeleteDevice(deviceId string) (bool, error)
+	FreezeDevice(deviceId string) (bool, error)
+	UnFreezeDevice(deviceId string) (bool, error)
+	ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) (*ResetDeviceSecretResponse, error)
 
 	// 设备消息
-	ListDeviceMessages(deviceId string) *DeviceMessages
-	ShowDeviceMessage(deviceId, messageId string) *DeviceMessage
-	SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse
+	ListDeviceMessages(deviceId string) (*DeviceMessages, error)
+	ShowDeviceMessage(deviceId, messageId string) (*DeviceMessage, error)
+	SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) (*SendDeviceMessageResponse, error)
 
 	// 设备命令
-	SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse
+	SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) (*DeviceSyncCommandResponse, error)
 
 	// 设备属性
 	QueryDeviceProperties(deviceId, serviceId string) string
@@ -695,7 +695,7 @@ func (a *iotSyncApplicationClient) ListAmqpQueues(req ListAmqpQueuesRequest) *Li
 	return resp
 }
 
-func (a *iotSyncApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) *ResetDeviceSecretResponse {
+func (a *iotSyncApplicationClient) ResetDeviceSecret(deviceId, secret string, forceDisconnect bool) (*ResetDeviceSecretResponse, error) {
 	resetSecret := struct {
 		Secret          string `json:"secret,omitempty"`
 		ForceDisconnect bool   `json:"force_disconnect,omitempty"`
@@ -703,8 +703,7 @@ func (a *iotSyncApplicationClient) ResetDeviceSecret(deviceId, secret string, fo
 
 	body, err := json.Marshal(resetSecret)
 	if err != nil {
-		fmt.Println("marshal failed")
-		return nil
+		return nil, err
 	}
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -717,21 +716,19 @@ func (a *iotSyncApplicationClient) ResetDeviceSecret(deviceId, secret string, fo
 		}).
 		Post("/v5/iot/{project_id}/devices/{device_id}/action")
 	if err != nil {
-		fmt.Println("reset device secret failed failed")
-		return nil
+		return nil, err
 	}
 
 	resp := &ResetDeviceSecretResponse{}
 
-	fmt.Println(string(response.Body()))
 	err = json.Unmarshal(response.Body(), resp)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return resp
+	return resp, nil
 }
 
-func (a *iotSyncApplicationClient) FreezeDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) FreezeDevice(deviceId string) (bool, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -739,14 +736,13 @@ func (a *iotSyncApplicationClient) FreezeDevice(deviceId string) bool {
 		}).
 		Post("/v5/iot/{project_id}/devices/{device_id}/freeze")
 	if err != nil {
-		fmt.Println("freeze device failed")
-		return false
+		return false, err
 	}
 
-	return successResponse(response)
+	return response.StatusCode() == 204, nil
 }
 
-func (a *iotSyncApplicationClient) UnFreezeDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) UnFreezeDevice(deviceId string) (bool, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -754,14 +750,13 @@ func (a *iotSyncApplicationClient) UnFreezeDevice(deviceId string) bool {
 		}).
 		Post("/v5/iot/{project_id}/devices/{device_id}/unfreeze")
 	if err != nil {
-		fmt.Println("unfreeze device failed")
-		return false
+		return false, err
 	}
 
-	return successResponse(response)
+	return response.StatusCode() == 204, nil
 }
 
-func (a *iotSyncApplicationClient) DeleteDevice(deviceId string) bool {
+func (a *iotSyncApplicationClient) DeleteDevice(deviceId string) (bool, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -769,18 +764,16 @@ func (a *iotSyncApplicationClient) DeleteDevice(deviceId string) bool {
 		}).
 		Delete("/v5/iot/{project_id}/devices/{device_id}")
 	if err != nil {
-		fmt.Println("list devices failed")
-		return false
+		return false, nil
 	}
 
-	return successResponse(response)
+	return response.StatusCode() == 204, nil
 }
 
-func (a *iotSyncApplicationClient) UpdateDevice(deviceId string, request UpdateDeviceRequest) *DeviceDetailResponse {
+func (a *iotSyncApplicationClient) UpdateDevice(deviceId string, request UpdateDeviceRequest) (*DeviceDetailResponse, error) {
 	body, err := json.Marshal(request)
 	if err != nil {
-		fmt.Println("marshal failed")
-		return nil
+		return nil, err
 	}
 
 	response, err := a.client.R().
@@ -791,22 +784,20 @@ func (a *iotSyncApplicationClient) UpdateDevice(deviceId string, request UpdateD
 		}).
 		Put("/v5/iot/{project_id}/devices/{device_id}")
 	if err != nil {
-		fmt.Println("list devices failed")
-		return nil
+		return nil, err
 	}
 
 	device := &DeviceDetailResponse{}
 	err = json.Unmarshal(response.Body(), device)
 	if err != nil {
-		fmt.Println("unmarshal response failed")
-		return nil
+		return nil, err
 	}
 
-	return device
+	return device, nil
 
 }
 
-func (a *iotSyncApplicationClient) ShowDevice(deviceId string) *DeviceDetailResponse {
+func (a *iotSyncApplicationClient) ShowDevice(deviceId string) (*DeviceDetailResponse, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
@@ -814,24 +805,22 @@ func (a *iotSyncApplicationClient) ShowDevice(deviceId string) *DeviceDetailResp
 		}).
 		Get("/v5/iot/{project_id}/devices/{device_id}")
 	if err != nil {
-		fmt.Println("list devices failed")
-		return nil
+		return nil, err
 	}
 
 	deviceDetail := &DeviceDetailResponse{}
 	err = json.Unmarshal(response.Body(), deviceDetail)
 	if err != nil {
-		fmt.Println("unmarshal failed")
-		return nil
+		return nil, err
 	}
 
-	return deviceDetail
+	return deviceDetail, nil
 }
 
-func (a *iotSyncApplicationClient) CreateDevice(request CreateDeviceRequest) *CreateDeviceResponse {
+func (a *iotSyncApplicationClient) CreateDevice(request CreateDeviceRequest) (*CreateDeviceResponse, error) {
 	bytesBody, err := json.Marshal(request)
 	if err != nil {
-		fmt.Println(err)
+		return nil, err
 	}
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -839,29 +828,30 @@ func (a *iotSyncApplicationClient) CreateDevice(request CreateDeviceRequest) *Cr
 		Post("/v5/iot/{project_id}/devices")
 
 	if err != nil {
-		fmt.Println("create device failed")
-		fmt.Println(err)
+		return nil, err
 	}
 
 	resp := &CreateDeviceResponse{}
 	err = json.Unmarshal(response.Body(), resp)
-	fmt.Println(string(response.Body()))
-	return resp
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
 }
 
-func (a *iotSyncApplicationClient) ListDevices(queryParas map[string]string) *ListDeviceResponse {
+func (a *iotSyncApplicationClient) ListDevices(queryParas map[string]string) (*ListDeviceResponse, error) {
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(queryParas).
 		Get("/v5/iot/{project_id}/devices")
 	if err != nil {
 		fmt.Println("list devices failed")
-		return nil
+		return nil, err
 	}
 
 	if !successResponse(response) {
 		fmt.Println("response failed")
-		return nil
+		return nil, err
 	}
 
 	devices := &ListDeviceResponse{}
@@ -869,10 +859,10 @@ func (a *iotSyncApplicationClient) ListDevices(queryParas map[string]string) *Li
 	err = json.Unmarshal(response.Body(), devices)
 	if err != nil {
 		fmt.Println("un marshal failed")
-		return nil
+		return nil, err
 	}
 
-	return devices
+	return devices, nil
 }
 
 func (a *iotSyncApplicationClient) UpdateDeviceProperties(deviceId string, services interface{}) bool {
@@ -909,11 +899,10 @@ func (a *iotSyncApplicationClient) QueryDeviceProperties(deviceId, serviceId str
 	return string(response.Body())
 }
 
-func (a *iotSyncApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) *DeviceSyncCommandResponse {
+func (a *iotSyncApplicationClient) SendDeviceSyncCommand(deviceId string, request DeviceSyncCommandRequest) (*DeviceSyncCommandResponse, error) {
 	reqBody, err := json.Marshal(request)
 	if err != nil {
-		fmt.Printf("marshal device sync command request failed %s", err)
-		return &DeviceSyncCommandResponse{}
+		return nil, err
 	}
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -923,27 +912,22 @@ func (a *iotSyncApplicationClient) SendDeviceSyncCommand(deviceId string, reques
 		}).
 		Post("/v5/iot/{project_id}/devices/{device_id}/commands")
 	if err != nil {
-		fmt.Printf("send device command failed %s", err)
-		return &DeviceSyncCommandResponse{}
+		return nil, err
 	}
-
-	fmt.Printf(response.Status())
 
 	resp := &DeviceSyncCommandResponse{}
-
 	err = json.Unmarshal(response.Body(), resp)
 	if err != nil {
-		fmt.Println(err)
-		return &DeviceSyncCommandResponse{}
+		return nil, err
 	}
 
-	return resp
+	return resp, nil
 }
 
-func (a *iotSyncApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) *SendDeviceMessageResponse {
+func (a *iotSyncApplicationClient) SendDeviceMessage(deviceId string, msg SendDeviceMessageRequest) (*SendDeviceMessageResponse, error) {
 	reqBody, err := json.Marshal(msg)
 	if err != nil {
-		return &SendDeviceMessageResponse{}
+		return nil, err
 	}
 	response, err := a.client.R().
 		SetHeader("Content-Type", "application/json").
@@ -953,41 +937,39 @@ func (a *iotSyncApplicationClient) SendDeviceMessage(deviceId string, msg SendDe
 		}).
 		Post("/v5/iot/{project_id}/devices/{device_id}/messages")
 	if err != nil {
-		return &SendDeviceMessageResponse{}
+		return nil, err
 	}
 
 	resp := &SendDeviceMessageResponse{}
 
 	err = json.Unmarshal(response.Body(), resp)
 	if err != nil {
-		return &SendDeviceMessageResponse{}
+		return nil, err
 	}
 
-	return resp
+	return resp, nil
 }
 
-func (a *iotSyncApplicationClient) ListDeviceMessages(deviceId string) *DeviceMessages {
+func (a *iotSyncApplicationClient) ListDeviceMessages(deviceId string) (*DeviceMessages, error) {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"device_id": deviceId,
 		}).
 		Get("/v5/iot/{project_id}/devices/{device_id}/messages")
 	if err != nil {
-		fmt.Println("list device messages error")
-		return &DeviceMessages{}
+		return &DeviceMessages{}, err
 	}
 
 	messages := &DeviceMessages{}
 	err = json.Unmarshal(response.Body(), messages)
 	if err != nil {
-		fmt.Println("deserialize device message failed")
-		fmt.Println(err)
+		return nil, err
 	}
 
-	return messages
+	return messages, nil
 }
 
-func (a *iotSyncApplicationClient) ShowDeviceMessage(deviceId, messageId string) *DeviceMessage {
+func (a *iotSyncApplicationClient) ShowDeviceMessage(deviceId, messageId string) (*DeviceMessage, error) {
 	response, err := a.client.R().
 		SetPathParams(map[string]string{
 			"device_id":  deviceId,
@@ -995,18 +977,16 @@ func (a *iotSyncApplicationClient) ShowDeviceMessage(deviceId, messageId string)
 		}).
 		Get("/v5/iot/{project_id}/devices/{device_id}/messages/{message_id}")
 	if err != nil {
-		fmt.Println("list device messages error")
-		return &DeviceMessage{}
+		return nil, err
 	}
 
 	messages := &DeviceMessage{}
 	err = json.Unmarshal(response.Body(), messages)
 	if err != nil {
-		fmt.Println("deserialize device message failed")
-		fmt.Println(err)
+		return nil, err
 	}
 
-	return messages
+	return messages, nil
 }
 
 func (a *iotSyncApplicationClient) ListApplications() *Applications {
