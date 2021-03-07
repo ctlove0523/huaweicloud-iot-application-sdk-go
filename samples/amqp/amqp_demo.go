@@ -24,7 +24,7 @@ func main() {
 
 	fmt.Println(*client.ListAmqpQueues(iot.ListAmqpQueuesRequest{}))
 
-	createQueueResponse := client.CreateAmqpQueue("sdktesttest")
+	createQueueResponse, _ := client.CreateAmqpQueue("sdktesttest")
 	if createQueueResponse != nil {
 		fmt.Println("create amqp queue success")
 		fmt.Println(client.ShowAmqpQueue(createQueueResponse.QueueID))

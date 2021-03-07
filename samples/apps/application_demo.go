@@ -22,7 +22,7 @@ func main() {
 
 	client := iot.CreateSyncIotApplicationClient(options)
 
-	apps := client.ListApplications()
+	apps, _ := client.ListApplications()
 	fmt.Println(apps.Applications)
 
 	fmt.Println(client.ShowApplication("a04cafa7d2714e9eaff4fe9b210ccec0"))
