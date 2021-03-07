@@ -98,7 +98,6 @@ func constructCanonicalRequest(request *resty.Request) string {
 	// 使用SHA 256哈希函数以基于HTTP或HTTPS请求正文中的body体（RequestPayload），创建哈希值。
 	requestBody, err := getBytes(request.Body)
 	if err != nil {
-		fmt.Println("get body bytes failed")
 		requestBody = []byte("")
 	}
 	encodedRequestBody := hashRequestBody(requestBody)

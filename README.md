@@ -43,423 +43,66 @@ require github.com/ctlove0523/[huaweicloud-iot-application-sdk-go v0.0.1-alpha
 go get github.com/ctlove0523/[huaweicloud-iot-application-sdk-go
 ~~~
 
-## 使用API
+## 使用Client
 
-### 设备连接鉴权
+### 创建同步Client
 
-1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
-
-设备ID：5fdb75cccbfe2f02ce81d4bf_go-mqtt
-
-设备密钥：123456789
-
-2、使用SDK创建一个Device对象，并初始化Device。
+1、创建使用AK/SK鉴权的Client：
 
 ~~~go
-import (
-	"fmt"
-	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	"time"
-)
+options := iot.ApplicationOptions{
+	ServerPort:    443,
+	ServerAddress: "iotda.cn-north-4.myhuaweicloud.com",
+	InstanceId:    "",
+	ProjectId:     "25e1be7c374749e9b6a25bc4ad53393a",
 
-func main() {
-	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-	device.Init()
-	if device.IsConnected() {
-		fmt.Println("device connect huawei iot platform success")
-	} else {
-		fmt.Println("device connect huawei iot platform failed")
-	}
-}
-~~~
-
-> iot-mqtts.cn-north-4.myhuaweicloud.com为华为IoT平台（基础班）在华为云北京四的访问端点，如果你购买了标准版或企业版，请将iot-mqtts.cn-north-4.myhuaweicloud.com更换为对应的MQTT协议接入端点。
-
-### 设备命令
-
-1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
-
-设备ID：5fdb75cccbfe2f02ce81d4bf_go-mqtt
-
-设备密钥：123456789
-
-2、使用SDK创建一个Device对象，并初始化Device。
-
-~~~go
-// 创建一个设备并初始化
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-device.Init()
-if device.IsConnected() {
-	fmt.Println("device connect huawei iot platform success")
-} else {
-	fmt.Println("device connect huawei iot platform failed")
-}
-~~~
-
-3、注册命令处理handler，支持注册多个handler并且按照注册的顺序回调
-
-~~~go
-// 添加用于处理平台下发命令的callback
-device.AddCommandHandler(func(command iot.Command) bool {
-	fmt.Println("First command handler begin to process command.")
-	return true
-})
-
-device.AddCommandHandler(func(command iot.Command) bool {
-	fmt.Println("Second command handler begin to process command.")
-	return true
-})
-~~~
-
-4、通过应用侧API向设备下发一个命令，可以看到程序输出如下：
-
-~~~
-device connect huawei iot platform success
-First command handler begin to process command.
-Second command handler begin to process command.
-~~~
-
-#### 完整样例
-
-~~~go
-import (
-	"fmt"
-	"github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	"time"
-)
-
-// 处理平台下发的同步命令
-func main() {
-	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-	device.Init()
-	if device.IsConnected() {
-		fmt.Println("device connect huawei iot platform success")
-	} else {
-		fmt.Println("device connect huawei iot platform failed")
-	}
-
-	// 添加用于处理平台下发命令的callback
-	device.AddCommandHandler(func(command iot.Command) bool {
-		fmt.Println("First command handler begin to process command.")
-		return true
-	})
-
-	device.AddCommandHandler(func(command iot.Command) bool {
-		fmt.Println("Second command handler begin to process command.")
-		return true
-	})
-	time.Sleep(1 * time.Minute)
-}
-~~~
-
-> 设备支持的命令定义在产品中
-
-### 设备消息
-
-1、首先，在华为云IoT平台创建一个设备，设备的信息如下：
-
-设备ID：5fdb75cccbfe2f02ce81d4bf_go-mqtt
-
-设备密钥：123456789
-
-2、使用SDK创建一个Device对象，并初始化Device。
-
-~~~go
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-	device.Init()
-~~~
-
-#### 设备消息上报
-
-~~~go
-message := iot.Message{
-	ObjectDeviceId: uuid.NewV4().String(),
-	Name:           "Fist send message to platform",
-	Id:             uuid.NewV4().String(),
-	Content:        "Hello Huawei IoT Platform",
-}
-device.SendMessage(message)
-~~~
-
-#### 平台消息下发
-
-接收平台下发的消息，只需注册消息处理handler，支持注册多个handler并按照注册顺序回调。
-
-~~~go
-// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
-// 支持注册多个callback，并且按照注册顺序调用
-device.AddMessageHandler(func(message iot.Message) bool {
-	fmt.Println("first handler called" + iot.Interface2JsonString(message))
-	return true
-})
-
-device.AddMessageHandler(func(message iot.Message) bool {
-	fmt.Println("second handler called" + iot.Interface2JsonString(message))
-	return true
-})
-~~~
-
-#### 完整样例
-
-~~~go
-import (
-	"fmt"
-	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	uuid "github.com/satori/go.uuid"
-	"time"
-)
-
-func main() {
-	// 创建一个设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-	device.Init()
-
-	// 注册平台下发消息的callback，当收到平台下发的消息时，调用此callback.
-	// 支持注册多个callback，并且按照注册顺序调用
-	device.AddMessageHandler(func(message iot.Message) bool {
-		fmt.Println("first handler called" + iot.Interface2JsonString(message))
-		return true
-	})
-
-	device.AddMessageHandler(func(message iot.Message) bool {
-		fmt.Println("second handler called" + iot.Interface2JsonString(message))
-		return true
-	})
-
-	//向平台发送消息
-	message := iot.Message{
-		ObjectDeviceId: uuid.NewV4().String(),
-		Name:           "Fist send message to platform",
-		Id:             uuid.NewV4().String(),
-		Content:        "Hello Huawei IoT Platform",
-	}
-	device.SendMessage(message)
-	time.Sleep(2 * time.Minute)
-
-}
-~~~
-
-### 设备属性
-
-1、首先，在华为云IoT平台创建一个设备，并在该设备下创建3个子设备，设备及子设备的信息如下：
-
-设备ID：5fdb75cccbfe2f02ce81d4bf_go-mqtt
-
-设备密钥：123456789
-
-子设备ID：5fdb75cccbfe2f02ce81d4bf_sub-device-1
-
-子设备ID：5fdb75cccbfe2f02ce81d4bf_sub-device-2
-
-子设备ID：5fdb75cccbfe2f02ce81d4bf_sub-device-3
-
-2、使用SDK创建一个Device对象，并初始化Device。
-
-~~~go
-// 创建设备并初始化
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-device.Init()
-fmt.Printf("device connected: %v\n", device.IsConnected())
-~~~
-
-#### 设备属性上报
-
-使用`ReportProperties(properties ServiceProperty) bool` 上报设备属性
-
-~~~go
-// 设备上报属性
-props := iot.ServicePropertyEntry{
-	ServiceId: "value",
-	EventTime: iot.DataCollectionTime(),
-	Properties: DemoProperties{
-		Value:   "chen tong",
-		MsgType: "23",
+	Credential: &iot.Credentials{
+		Ak:      "xxx",
+		Sk:      "xxx",
+		UseAkSk: true,
 	},
 }
 
-var content []iot.ServicePropertyEntry
-content = append(content, props)
-services := iot.ServiceProperty{
-	Services: content,
-}
-device.ReportProperties(services)
+client := iot.CreateSyncIotApplicationClient(options)
 ~~~
 
-#### 网关批量设备属性上报
-
-使用`BatchReportSubDevicesProperties(service DevicesService)` 实现网关批量设备属性上报
+2、如果不想使用AK/SK鉴权，还可以创建使用Token鉴权的Client
 
 ~~~go
-// 批量上报子设备属性
-subDevice1 := iot.DeviceService{
-	DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-1",
-	Services: content,
-}
-subDevice2 := iot.DeviceService{
-	DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-2",
-	Services: content,
-}
+options := iot.ApplicationOptions{
+	ServerPort:    443,
+	ServerAddress: "iotda.cn-north-4.myhuaweicloud.com",
+	InstanceId:    "",
+	ProjectId:     "25e1be7c374749e9b6a25bc4ad53393a",
 
-subDevice3 := iot.DeviceService{
-	DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-3",
-	Services: content,
+	Credential: &iot.Credentials{
+		UseAkSk: false,
+		Token:   "xxx",
+	},
 }
 
-var devices []iot.DeviceService
-devices = append(devices, subDevice1, subDevice2, subDevice3)
-
-device.BatchReportSubDevicesProperties(iot.DevicesService{
-	Devices: devices,
-})
+client := iot.CreateSyncIotApplicationClient(options)
 ~~~
 
-#### 平台设置设备属性
+### 使用Client调用API
 
-使用`AddPropertiesSetHandler(handler DevicePropertiesSetHandler)` 注册平台设置设备属性handler，当接收到平台的命令时SDK回调。
-
-~~~go
-// 注册平台设置属性callback,当应用通过API设置设备属性时，会调用此callback，支持注册多个callback
-device.AddPropertiesSetHandler(func(propertiesSetRequest iot.DevicePropertyDownRequest) bool {
-	fmt.Println("I get property set command")
-	fmt.Printf("request is %s", iot.Interface2JsonString(propertiesSetRequest))
-	return true
-})
-~~~
-
-#### 平台查询设备属性
-
-使用`SetPropertyQueryHandler(handler DevicePropertyQueryHandler)`注册平台查询设备属性handler，当接收到平台的查询请求时SDK回调。
+SDK中所有的方法返回值都为（x,y）格式，x根据不同的方法返回的对象不同，y都为Go的error，在使用结果x之前应当首先检查y是否为nil，也就是检查方法调用是否成功，只有方法调用成功时结果x才是可用的。下面以查询AMQP队列为例说明：
 
 ~~~go
-// 注册平台查询设备属性callback，当平台查询设备属性时此callback被调用，仅支持设置一个callback
-device.SetPropertyQueryHandler(func(query iot.DevicePropertyQueryRequest) iot.ServicePropertyEntry {
-	return iot.ServicePropertyEntry{
-		ServiceId: "value",
-		Properties: DemoProperties{
-			Value:   "QUERY RESPONSE",
-			MsgType: "query property",
-		},
-		EventTime: "2020-12-19 02:23:24",
-	}
-})
-~~~
-
-#### 设备侧获取平台的设备影子数据
-
-使用`QueryDeviceShadow(query DevicePropertyQueryRequest, handler DevicePropertyQueryResponseHandler)`
-可以查询平台的设备影子数据，当接收到平台的响应后SDK自动回调`DevicePropertyQueryResponseHandler`。
-
-~~~go
-// 设备查询设备影子数据
-device.QueryDeviceShadow(iot.DevicePropertyQueryRequest{
-	ServiceId: "value",
-}, func(response iot.DevicePropertyQueryResponse) {
-	fmt.Printf("query device shadow success.\n,device shadow data is %s\n", iot.Interface2JsonString(response))
-})
-~~~
-
-#### 完整样例
-
-~~~go
-import (
-	"fmt"
-	iot "github.com/ctlove0523/huaweicloud-iot-device-sdk-go"
-	"time"
-)
-
-func main() {
-	// 创建设备并初始化
-	device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "123456789", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-	device.Init()
-	fmt.Printf("device connected: %v\n", device.IsConnected())
-
-	// 注册平台设置属性callback,当应用通过API设置设备属性时，会调用此callback，支持注册多个callback
-	device.AddPropertiesSetHandler(func(propertiesSetRequest iot.DevicePropertyDownRequest) bool {
-		fmt.Println("I get property set command")
-		fmt.Printf("request is %s", iot.Interface2JsonString(propertiesSetRequest))
-		return true
-	})
-
-	// 注册平台查询设备属性callback，当平台查询设备属性时此callback被调用，仅支持设置一个callback
-	device.SetPropertyQueryHandler(func(query iot.DevicePropertyQueryRequest) iot.ServicePropertyEntry {
-		return iot.ServicePropertyEntry{
-			ServiceId: "value",
-			Properties: DemoProperties{
-				Value:   "QUERY RESPONSE",
-				MsgType: "query property",
-			},
-			EventTime: "2020-12-19 02:23:24",
-		}
-	})
-
-	// 设备上报属性
-	props := iot.ServicePropertyEntry{
-		ServiceId: "value",
-		EventTime: iot.DataCollectionTime(),
-		Properties: DemoProperties{
-			Value:   "chen tong",
-			MsgType: "23",
-		},
-	}
-
-	var content []iot.ServicePropertyEntry
-	content = append(content, props)
-	services := iot.ServiceProperty{
-		Services: content,
-	}
-	device.ReportProperties(services)
-
-	// 设备查询设备影子数据
-	device.QueryDeviceShadow(iot.DevicePropertyQueryRequest{
-		ServiceId: "value",
-	}, func(response iot.DevicePropertyQueryResponse) {
-		fmt.Printf("query device shadow success.\n,device shadow data is %s\n", iot.Interface2JsonString(response))
-	})
-
-	// 批量上报子设备属性
-	subDevice1 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-1",
-		Services: content,
-	}
-	subDevice2 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-2",
-		Services: content,
-	}
-
-	subDevice3 := iot.DeviceService{
-		DeviceId: "5fdb75cccbfe2f02ce81d4bf_sub-device-3",
-		Services: content,
-	}
-
-	var devices []iot.DeviceService
-	devices = append(devices, subDevice1, subDevice2, subDevice3)
-
-	device.BatchReportSubDevicesProperties(iot.DevicesService{
-		Devices: devices,
-	})
-	time.Sleep(1 * time.Minute)
+queues, err := client.ListAmqpQueues(iot.ListAmqpQueuesRequest{})
+if err != nil {  // 首先检查方法调用是否成功
+	fmt.Println(err)
+	panic(1)
 }
 
-type DemoProperties struct {
-	Value   string `json:"value"`
-	MsgType string `json:"msgType"`
-}
-~~~
-
-### 文件上传/下载管理
-
-#### 文件上传
-
-~~~go
-device := iot.CreateIotDevice("5fdb75cccbfe2f02ce81d4bf_go-mqtt", "xxx", "tls://iot-mqtts.cn-north-4.myhuaweicloud.com:8883")
-device.Init()
-
-device.UploadFile("D/software/mqttfx/chentong.txt")
+fmt.Println(queues.Queues)  //方法调用成功，可以使用方法返回的结果
 ~~~
 
 
+
+### 更多样例：
+
+samples包中有更多使用样例。
 
 ## 报告bugs
 
