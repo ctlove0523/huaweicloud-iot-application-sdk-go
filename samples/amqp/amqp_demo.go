@@ -13,8 +13,8 @@ func main() {
 		ProjectId:     "25e1be7c374749e9b6a25bc4ad53393a",
 
 		Credential: &iot.Credentials{
-			Ak:      "S4QUJL4COTKPPR2VIFTF",
-			Sk:      "hRsE5wFm31FpjCmQjxx9vqcodn7eFgDuE8q6eq5W",
+			Ak:      "xxx",
+			Sk:      "xxx",
 			UseAkSk: true,
 		},
 	}
